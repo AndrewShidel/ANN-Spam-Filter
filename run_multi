@@ -1,0 +1,3 @@
+#!/bin/bash
+./make
+python nn_multi.py | ./nn_multi
