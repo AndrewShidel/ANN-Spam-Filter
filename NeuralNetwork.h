@@ -20,25 +20,28 @@ typedef std::vector<double> Vector;
 typedef std::vector< Vector > Vector2D;
 typedef std::vector< std::vector< std::vector<double> > > Vector3D;
 
+typedef unsigned long long int ull;
+
 int run_square_array(void);
 
-class NeuralNetwork { 
+class NeuralNetwork {
 public:
     Vector3D weights;
     Vector3D initialWeights;
     Vector3D deltas;
     Vector2D errors;
     Vector2D biases;
-    
+
     Vector3D outputs;
     Vector3D changes;
-    
+
     int trainCount = 0;
     double error = 1.0;
     int generation = 0;
-    
+    int precision = 16;
+
     std::vector<int> sizes; //Size of each layer
-    
+
     NeuralNetwork();
 	NeuralNetwork(std::vector<int> sizes, int trainingSize);
 	Vector run(Vector input, int index);
@@ -48,11 +51,12 @@ public:
 	void calculateDeltas(const Vector& target, int index);
 	void adjustWeights(double learningRate, double momentum, int trainingSize);
     NeuralNetwork clone();
-    
+
     static double randomWeight();
     static Vector zeros(int size);
     static Vector randos(int size);
     static double meanSquaredError(Vector errors);
+    static double absError(Vector v1, Vector v2);
 
     static Vector makeInputVector(int length, double args[]) {
         return Vector(args, args+length);
@@ -115,4 +119,4 @@ public:
 	}
 };
 
-#endif 
+#endif

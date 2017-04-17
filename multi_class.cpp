@@ -12,48 +12,38 @@ vector<double> split(const string &s, char delim);
 int round(vector<double> in);
 
 int main(int argc, char** argv) {
-    vector<int> sizes = vector<int>();
-    sizes.push_back(21);
-    sizes.push_back(20);
-    sizes.push_back(3);
-    
     ofstream graphFile;
     graphFile.open ("part1.graph");
-    
-    NeuralNetwork net = NeuralNetwork(sizes, 2000);
-    TrainingOptions options = TrainingOptions();
-    options.errorThresh = pow(0.000000001, 2);
-    options.iterations = 1000;
-    options.log = true;
-    options.logger = &graphFile;
-    options.logPeriod = 1;
-    options.momentum = 0;
-    options.learningRate = 0.5;
-    vector<TrainingItem> items = vector<TrainingItem>();
-    
-    cout << "Reading Input File\n";
+    for (int prec=1; prec<=16; prec++) {
+        vector<int> sizes = vector<int>();
+        sizes.push_back(1);
+        sizes.push_back(2);
+        sizes.push_back(400);
 
-    bool input = true;
-    vector<double> inputs, outputs;
-    for (string line; getline(cin, line);) {
-        if (line == "done") break;
-        if (input)
-            inputs = split(line, ',');
-        else {
-            outputs = split(line, ',');
-            items.push_back(TrainingItem(inputs, outputs));
+        NeuralNetwork net = NeuralNetwork(sizes, 1);
+        net.precision = prec;
+        TrainingOptions options = TrainingOptions();
+        options.errorThresh = pow(0.000000001, 2);
+        options.iterations = 10000;
+        options.log = true;
+        options.logger = &graphFile;
+        options.logPeriod = 9999;
+        options.momentum = 0;
+        options.learningRate = 0.5;
+        vector<TrainingItem> items = vector<TrainingItem>();
+
+        vector<double> inputs, outputs;
+        inputs.push_back(1);
+        for (int i=0; i<sizes[sizes.size()-1]; ++i) {
+            outputs.push_back(((double)rand())/RAND_MAX);
         }
-        input = !input;
+        items.push_back(TrainingItem(inputs, outputs));
+        TrainingData data = TrainingData(items);
+        net.train(data, options);
     }
-    
-    cout << "Done Reading\n";
-
-    TrainingData data = TrainingData(items);
-    net.train(data, options);
-    
     int numCorrect = 0;
     int numSamples = 0;
-    
+/*
     for (string line; getline(cin, line);) {
         if (line == "done") break;
         inputs = split(line, ',');
@@ -70,6 +60,7 @@ int main(int argc, char** argv) {
         numSamples++;
     }
     cout << "\nTesting Error: " << 1 - ((double)numCorrect)/numSamples << "\n";
+*/
     graphFile.close();
     return 0;
 }
@@ -102,4 +93,3 @@ vector<double> split(const string &s, char delim) {
     }
     return result;
 }
-

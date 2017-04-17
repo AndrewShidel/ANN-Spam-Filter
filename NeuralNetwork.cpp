@@ -1,11 +1,12 @@
 #include "NeuralNetwork.h"
 #include <cmath>
+#include <math.h>
 #include <iostream>
 
 int bijectiveMap(int a, int b) {
     return (a + b) * (a + b + 1) / 2 + a;
 }
-
+ull lpow(ull base, int exp);
 NeuralNetwork::NeuralNetwork(){}
 
 NeuralNetwork::NeuralNetwork(std::vector<int> sizes, int trainingSize) {
@@ -19,7 +20,7 @@ NeuralNetwork::NeuralNetwork(std::vector<int> sizes, int trainingSize) {
 	this->deltas = Vector3D();
 	this->changes = Vector3D();
 	this->errors = Vector2D();
-    
+
     this->biases.push_back(randos(this->sizes[0]));
     this->weights.push_back(Vector2D());
     this->changes.push_back(Vector2D());
@@ -55,17 +56,27 @@ NeuralNetwork::NeuralNetwork(std::vector<int> sizes, int trainingSize) {
 
 Vector NeuralNetwork::run(std::vector<double> input, int index) {
 	this->outputs[index][0] = input;
+    ull roundBase = lpow(10, this->precision);
 	for (int layer = 1; layer <= this->outputLayer; layer++) {
 		for (int node = 0; node < this->sizes[layer]; node++) {
 			Vector& weights = this->weights[layer][node];
 
 			double sum = this->biases[layer][node];
 			for (int k=0; k< weights.size(); k++) {
-                sum += weights[k] * input[k];
+                double weight = ((double)llround(weights[k] * roundBase)) / roundBase;
+                if (layer == this->outputLayer && node == 0) {
+                    std::cout.precision(17);
+                    //std::cout << "w: " << weight << "\n";
+
+                }
+                sum += weight * input[k];
 			}
-            
-            double outputValue = 1/(1+exp(-1*sum)); 
+
+            double outputValue = 1/(1+exp(-1*sum));
             this->outputs[index][layer][node] = outputValue;
+            if (layer == this->outputLayer && node == 0) {
+                //std::cout << "o: " << this->outputs[index][layer][node] << "\n";
+            }
 		}
 		input = this->outputs[index][layer];
 	}
@@ -80,26 +91,33 @@ TrainingResults NeuralNetwork::train(TrainingData data, TrainingOptions options)
 	double momentum = options.momentum;
 	bool logInfo = options.log;
 	int logPeriod = options.logPeriod;
-
+    //this->precision = 16;
 	double error = 1.0;
 	int i=0;
 	for (; i < iterations && error > errorThresh; i++) {
 		double sum = 0.0;
         for (int k=0; k<data.size(); ++k) {
             this->run(data.get(k).input, k);
+            //std::cout << "a: " << data.get(k).output[0] << "\n";
             this->calculateDeltas(data.get(k).output, k);
-            double error = meanSquaredError(this->errors[this->outputLayer]);
+            //double error = meanSquaredError(this->errors[this->outputLayer]);
+            double error = absError(this->outputs[0][this->outputLayer], data.get(k).output);
             sum += error;
         }
         this->adjustWeights(learningRate, momentum, data.size());
-
         error = sum/data.size();
-		if (logInfo && (i%logPeriod == 0)) {
+        /*if (error < 0.01 && this->precision > 1) {
+            this->precision--;
+        }*/
+
+		if (logInfo && (i%logPeriod == 0) && i!=0) {
 		    (*options.logger) << i << "," << error << "\n";
-            std::cout << "Iterations = " << i << ", Error = " << error << "\r";
+            //sleep(500000);
+            //std::cout << "Iterations = " << i << ", Error = " << error <<  ", Precision = " << this->precision << "\n";
+            std::cout << error << "\n";
             std::cout.flush();
 		}
-        
+
 	}
     this->error = error;
 	return TrainingResults(error, i);
@@ -184,11 +202,31 @@ Vector NeuralNetwork::randos(int size) {
 	return vect;
 }
 
+double NeuralNetwork::absError(Vector v1, Vector v2) {
+	double sum = 0.0;
+	for (int i=0; i<v1.size(); i++) {
+		//sum += pow(errors[i], 2);
+        sum += std::abs(v1[i] - v2[i]);
+	}
+	return sum / v1.size();
+}
+
 double NeuralNetwork::meanSquaredError(Vector errors) {
 	double sum = 0.0;
 	for (int i=0; i<errors.size(); i++) {
 		sum += pow(errors[i], 2);
+        //sum += std::abs(errors[i]);
 	}
 	return sum / errors.size();
 }
 
+ull lpow(ull base, int exp) {
+    ull result = 1ULL;
+    while (exp) {
+        if (exp & 1)
+            result *= base;
+        exp >>= 1;
+        base *= base;
+    }
+    return result;
+}
